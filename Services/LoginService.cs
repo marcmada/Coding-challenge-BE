@@ -22,12 +22,22 @@ namespace CoddingChallenge.Services
         {
             var captain = await _dataContext.Captains.FirstOrDefaultAsync(c => c.Username == loginDTO.Username) ?? throw new InvalidOperationException("Incorrect credentials!");
 
-            if (captain.Password == loginDTO.Password)
-            {
+            if(VerifyPassword(captain.Password, loginDTO.Password)) 
+            { 
                 return new CaptainDTO(captain.Id, captain.Name);
             }
 
             throw new InvalidOperationException("Incorrect credentials!");
+        }
+
+        private string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        private bool VerifyPassword(string storedPassword, string password)
+        {
+            return BCrypt.Net.BCrypt.Verify(password, storedPassword);
         }
 
         public async Task<CaptainDTO> Register(RegisterDTO registerDTO)
@@ -40,6 +50,8 @@ namespace CoddingChallenge.Services
             }
 
             var newCaptain = _mapper.Map<RegisterDTO, Captain>(registerDTO);
+            newCaptain.Password = HashPassword(registerDTO.Password);
+
             await _dataContext.Captains.AddRangeAsync(newCaptain);
             await _dataContext.SaveChangesAsync();
 
